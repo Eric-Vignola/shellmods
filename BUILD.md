@@ -30,7 +30,6 @@ leaves a ready-to-run layout:
 dist\
   shellmods.exe        the loader
   symgen.exe           the symbol resolver
-  msdia140.dll         copied from your VS install
   shellmods.ini        default settings (checked in, not generated)
   mods\
     taskbar64.dll
@@ -75,6 +74,26 @@ disassembled instruction, so the disassembler's exact spelling is part of the
 contract. The test asserts Zydis still formats `F2 0F 10 41 50` as
 `movsd xmm0, qword ptr [rcx+0x50]` and that the mod's own regex extracts `0x50`
 from it.
+
+## Releases
+
+`.github/workflows/release.yml` builds on a `v*` tag and publishes a zip of
+`dist/` plus the documentation. It can also be run manually
+(`workflow_dispatch`), which does everything except create the release, so the
+pipeline can be exercised without tagging.
+
+The workflow uses only first-party actions and cuts the release with the
+preinstalled `gh`, rather than pulling in a third-party release action.
+
+Two things it deliberately checks rather than assumes: that the DIA SDK exists on
+the runner image (it ships with Visual Studio rather than as a listed component,
+so it is not in the image manifest), and that no Microsoft redistributable has
+crept into `dist/`.
+
+Released archives contain no `offsets/*.sym`. Those are resolved against one
+specific Windows build and fingerprinted against it, so a runner-generated set
+would be rejected as stale on every other machine. Each user runs `symgen.exe`
+once after unzipping.
 
 ## Regenerating
 
@@ -130,9 +149,15 @@ Collected in `build\common.props`:
 
 ## Redistribution
 
-`msdia140.dll` is copied from your Visual Studio installation by the `symgen`
-post-build step. It is on Microsoft's redistributable list for Visual Studio, so
-shipping it beside `symgen.exe` is fine; the file is not checked in.
+`msdia140.dll` is never copied anywhere. `symgen.exe` finds the copy already
+installed with Visual Studio at runtime, asking `vswhere` for every installation
+and falling back to a scan of the default directories — which matters, because
+side-by-side installs put the version in the path
+(`Microsoft Visual Studio\2026\Professional\18.6.2`) and a fixed-depth guess misses them.
+
+So nothing Microsoft-owned is committed, staged, or released. `.github/workflows/
+release.yml` enforces that with a step that fails if anything matching
+`msdia*`/`symsrv*`/`vcruntime*` turns up in `dist/`.
 
 `symsrv.dll` is deliberately **not** used. Routing PDB downloads through it would
 work, but symsrv gates access to Microsoft's symbol server behind a `symsrv.yes`

@@ -1,0 +1,168 @@
+# Builds the binaries and publishes them as a GitHub release.
+#
+# Triggered by pushing a v* tag. workflow_dispatch is there so the whole thing
+# can be exercised without tagging -- it builds, tests and uploads the zip as a
+# workflow artifact, but does not create a release.
+#
+# Only first-party actions are used (actions/*, microsoft/*), and the release
+# itself is cut with the preinstalled gh CLI rather than a third-party action.
+# For a repository whose whole purpose is injecting code into explorer.exe,
+# keeping the supply chain short seems like the least it can do.
+
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write # required to create the release
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: microsoft/setup-msbuild@v2
+
+      # The DIA SDK ships with Visual Studio rather than as a selectable
+      # component, so it is not listed in the runner image manifest. Check for
+      # it explicitly: without it symgen fails to compile, and a build that
+      # produced everything except the symbol resolver would be worse than no
+      # build at all.
+      - name: Verify the DIA SDK is present
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vs = & $vswhere -latest -products * -property installationPath
+          Write-Host "Visual Studio: $vs"
+          $header = Join-Path $vs 'DIA SDK\include\dia2.h'
+          $lib    = Join-Path $vs 'DIA SDK\lib\amd64\diaguids.lib'
+          foreach ($p in @($header, $lib)) {
+            if (-not (Test-Path $p)) {
+              Write-Host "::error::DIA SDK missing on this runner image: $p"
+              Write-Host "symgen cannot build without it. See BUILD.md."
+              exit 1
+            }
+            Write-Host "  found $p"
+          }
+
+      - name: Build
+        run: msbuild shellmods.sln /p:Configuration=Release /p:Platform=x64 /m /v:minimal
+
+      # Guards the Wh_Disasm text contract that taskbar-icon-size depends on:
+      # the mod recovers a struct offset by running a regex over disassembly
+      # text, so the disassembler's exact spelling is part of the contract.
+      - name: Test
+        run: .\build\Release\disasm_test.exe
+
+      # This project deliberately redistributes nothing Microsoft-owned:
+      # symgen locates msdia140.dll from the local Visual Studio install at
+      # runtime. If a change ever reintroduces the old copy step, catch it here
+      # rather than in a published release.
+      - name: Check no Microsoft binaries are staged
+        shell: pwsh
+        run: |
+          $bad = Get-ChildItem dist -Recurse -File |
+                 Where-Object { $_.Name -match '^(msdia|symsrv|dbghelp|msvc|vcruntime)' }
+          if ($bad) {
+            $bad | ForEach-Object { Write-Host "::error::unexpected redistributable staged: $($_.FullName)" }
+            exit 1
+          }
+          Write-Host "dist contains no Microsoft redistributables."
+
+      - name: Stage the release layout
+        shell: pwsh
+        run: |
+          $stage = 'stage/shellmods'
+          New-Item -ItemType Directory -Force $stage | Out-Null
+          # dist/ is the runtime layout the loader expects: shellmods.exe and
+          # symgen.exe at the root, mod DLLs under mods/. offsets/ is absent on
+          # purpose -- see the release notes.
+          Copy-Item dist/* $stage -Recurse -Force
+          Copy-Item README.md, BUILD.md, NOTICE.md, LICENSE $stage
+          Get-ChildItem $stage -Recurse -File |
+            ForEach-Object { $_.FullName.Substring((Resolve-Path 'stage').Path.Length + 1) }
+
+      - name: Zip
+        shell: pwsh
+        run: |
+          $version = if ($env:GITHUB_REF -like 'refs/tags/*') {
+            $env:GITHUB_REF -replace '^refs/tags/', ''
+          } else {
+            "dev-$($env:GITHUB_SHA.Substring(0,7))"
+          }
+          "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Compress-Archive -Path stage/shellmods -DestinationPath "shellmods-$version-x64.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shellmods-${{ env.VERSION }}-x64
+          path: shellmods-${{ env.VERSION }}-x64.zip
+          if-no-files-found: error
+
+      # The notes are written with a single-quoted here-string and two
+      # placeholders, rather than an interpolating one. PowerShell treats the
+      # backtick as an escape character, and this text is mostly markdown code
+      # spans and fences -- interpolation would quietly eat them.
+      - name: Publish the release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $notes = @'
+          Windows 11, x86-64. Built from `__SHA__` by GitHub Actions.
+
+          ## Before it will do anything
+
+          Unzip, then run `symgen.exe` **once**:
+
+          ```
+          symgen.exe
+          ```
+
+          The mods hook functions Microsoft does not export, found by mangled
+          name in each module's PDB. Those addresses are specific to your exact
+          Windows build, so they cannot be shipped -- `symgen` resolves them
+          against your machine and records a fingerprint of each binary it read.
+          Then:
+
+          ```
+          shellmods.exe --once      # or --install to start with Windows
+          ```
+
+          `symgen.exe` needs `msdia140.dll`, which comes with any Visual
+          Studio 2015 or newer, including the free Build Tools. It is found
+          automatically. If you have no Visual Studio installed, copy that DLL
+          next to `symgen.exe` or pass `--msdia <path>`. No Microsoft
+          binaries are redistributed in this archive.
+
+          ## After a Windows update
+
+          Symbol offsets go stale when Windows replaces the shell binaries. The
+          mods detect this by fingerprint and **refuse to hook** rather than use
+          a wrong address -- so they go quiet rather than breaking Explorer.
+          Re-run `symgen.exe` and restart Explorer.
+
+          ## Turning it off
+
+          `shellmods.exe --disable` unhooks everything within a second, with
+          no Explorer restart. Holding Shift at startup and safe mode also work.
+
+          ## Note
+
+          These binaries are unsigned, so SmartScreen will warn on first run.
+          The mods are GPL-3.0 work by m417z / Ramen Software; see NOTICE.md.
+          Corresponding source is this repository at tag `__VERSION__`.
+          '@
+          $notes = $notes.Replace('__SHA__', $env:GITHUB_SHA).Replace('__VERSION__', $env:VERSION)
+          Set-Content -Path release-notes.md -Value $notes -Encoding utf8
+          gh release create $env:VERSION `
+            "shellmods-$env:VERSION-x64.zip" `
+            --title "shellmods $env:VERSION" `
+            --notes-file release-notes.md
