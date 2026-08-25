@@ -1,8 +1,7 @@
 # Third-party code and licensing
 
-This repository is **private**. Most of what follows only takes legal effect on
-distribution — but it is recorded here so the position is clear if this is ever
-made public, forked, or shared.
+This repository is published under **GPL-3.0** (see `LICENSE`), because it
+distributes derivative works of GPL-3.0 mods. The detail is below.
 
 ## The three mods
 
@@ -19,16 +18,18 @@ exactly what changed.
 | `explorer-details-better-file-sizes` | GPL-3.0 (stated in the file header). Its Everything SDK excerpt carries an MIT notice inline. |
 | `explorer-context-menu-classic` | No license header in the file; see the upstream repository. |
 
-**The GPL-3.0 consequence, if this ever goes public:** publishing a derivative
-work of those mods means the distributed whole must be offered under GPL-3.0 —
-including `shim/`, `loader/` and `symgen/`, which are otherwise original work in
-this repository. That is a normal outcome for building on GPL code, not a
-problem, but it is a decision to make deliberately rather than discover later.
-Adding a `LICENSE` file with the GPL-3.0 text would be the first step.
+**Why the whole repository is GPL-3.0:** distributing a derivative work of those
+mods means the distributed whole must be offered under GPL-3.0 — including
+`shim/`, `loader/` and `symgen/`, which are otherwise original work here. That is
+the normal consequence of building on GPL code, and it is deliberate: `LICENSE`
+carries the GPL-3.0 text.
 
 ## Vendored dependencies
 
-Committed under `vendor/`, unmodified, at the versions below.
+Committed under `vendor/`, unmodified, at the versions below. Only the files the
+build actually consumes are kept — headers, sources, licences and READMEs. The
+upstream test suites, examples, docs and CI configuration were removed, so these
+trees are a subset of upstream rather than a copy of it.
 
 | Library | Version | License | Upstream |
 |---|---|---|---|
