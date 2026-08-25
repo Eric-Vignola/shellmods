@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{3F151861-5829-54D6-9901-858C9C694804}</ProjectGuid>
+    <RootNamespace>disasm_test</RootNamespace>
+    <ProjectName>disasm_test</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="..\build\common.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <TargetName>disasm_test</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\shim\include;..\shim\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ForcedIncludeFiles>test_defines.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="disasm_test.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\shim\shim.vcxproj">
+      <Project>{3771D86F-13EE-51C5-9A97-5BD30C35FA7A}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\vendor\minhook.vcxproj">
+      <Project>{925C5AC2-6A5E-5C53-8523-FD640138B90C}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\vendor\zydis.vcxproj">
+      <Project>{C21B8810-C78D-5EC0-90E5-04AA20E6068E}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

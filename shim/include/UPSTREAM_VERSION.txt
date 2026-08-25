@@ -1,0 +1,2 @@
+1.7.3
+Vendored verbatim from ramensoftware/windhawk-mods@main/.vscode/windhawk_headers_1.7.3

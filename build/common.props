@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Settings shared by every project in the solution.
+
+  Notes on the choices that are not obvious:
+
+  * /Zc:preprocessor is deliberately NOT enabled. The vendored windhawk_api.h
+    defines Wh_Log using the GNU ", ##__VA_ARGS__" comma-swallowing extension,
+    which MSVC's traditional preprocessor supports and its conformant one does
+    not. Leaving the traditional preprocessor in place is what lets the upstream
+    header be used unmodified.
+
+  * NOMINMAX matters. <windows.h> defines min and max as macros; the mods call
+    std::max, which then expands into nonsense. Upstream never hits this because
+    MinGW's headers do not define those macros.
+
+  * x64 only. Two of the three mods are declared @architecture x86-64 upstream.
+-->
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ShellModsRoot>$(MSBuildThisFileDirectory)..\</ShellModsRoot>
+    <!-- MSVC's <comutil.h> needs the COM support library, and it has separate
+         debug and release variants that must match the CRT. -->
+    <ShellModsComSupportLib Condition="'$(Configuration)'=='Debug'">comsuppwd.lib</ShellModsComSupportLib>
+    <ShellModsComSupportLib Condition="'$(Configuration)'=='Release'">comsuppw.lib</ShellModsComSupportLib>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Configuration">
+    <PlatformToolset>v143</PlatformToolset>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <CharacterSet>Unicode</CharacterSet>
+    <UseDebugLibraries Condition="'$(Configuration)'=='Debug'">true</UseDebugLibraries>
+    <UseDebugLibraries Condition="'$(Configuration)'=='Release'">false</UseDebugLibraries>
+    <WholeProgramOptimization Condition="'$(Configuration)'=='Release'">false</WholeProgramOptimization>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <OutDir>$(ShellModsRoot)build\$(Configuration)\</OutDir>
+    <IntDir>$(ShellModsRoot)build\obj\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <!-- /bigobj: the mods are large single translation units and the default
+           section count is not enough for taskbar-icon-size.
+           /FS: required whenever /MP is on and several cl.exe instances share
+           one .pdb, which is exactly what MultiProcessorCompilation does. -->
+      <AdditionalOptions>%(AdditionalOptions) /bigobj /FS</AdditionalOptions>
+      <PreprocessorDefinitions>
+        WIN32;
+        _WINDOWS;
+        UNICODE;
+        _UNICODE;
+        NOMINMAX;
+        WINVER=0x0A00;
+        _WIN32_WINNT=0x0A00;
+        NTDDI_VERSION=0x0A000008;
+        %(PreprocessorDefinitions)
+      </PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)'=='Release'">NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Optimization Condition="'$(Configuration)'=='Debug'">Disabled</Optimization>
+      <Optimization Condition="'$(Configuration)'=='Release'">MaxSpeed</Optimization>
+      <FunctionLevelLinking Condition="'$(Configuration)'=='Release'">true</FunctionLevelLinking>
+      <IntrinsicFunctions Condition="'$(Configuration)'=='Release'">true</IntrinsicFunctions>
+      <!-- Static CRT. A mod DLL lands in explorer.exe, and depending on a
+           redistributable VC runtime being present and matching would be one
+           more way for injection to fail in a hard-to-diagnose manner. -->
+      <RuntimeLibrary Condition="'$(Configuration)'=='Debug'">MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary Condition="'$(Configuration)'=='Release'">MultiThreaded</RuntimeLibrary>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding Condition="'$(Configuration)'=='Release'">true</EnableCOMDATFolding>
+      <OptimizeReferences Condition="'$(Configuration)'=='Release'">true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+</Project>
