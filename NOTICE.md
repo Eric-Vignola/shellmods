@@ -49,10 +49,16 @@ so that upstream mod sources compile against them without edits — see
 
 ## Not redistributed here
 
-`msdia140.dll` is **not** committed. The build copies it from your local Visual
-Studio installation, where it is covered by the Visual Studio license and is on
-Microsoft's redistributable list. Anyone building this repository supplies their
-own copy the same way, via the `symgen` post-build step.
+`msdia140.dll` is **not** committed, not staged into `dist/`, and not included in
+released archives. `symgen.exe` locates the copy already installed with Visual
+Studio at runtime — see `symgen/find_msdia.cpp`. It is on Microsoft's
+redistributable list, so shipping it would be permitted; not shipping it is
+simply cleaner, and the release workflow has a step that fails the build if a
+Microsoft binary ever reappears in `dist/`.
+
+The consequence is that `symgen.exe` needs some Visual Studio 2015-or-newer
+installation present, including the free Build Tools. Failing that, dropping
+`msdia140.dll` beside `symgen.exe` or passing `--msdia <path>` also works.
 
 PDBs downloaded by `symgen.exe` are cached outside the repository, under
 `%TEMP%\shellmods-symbols`, and are never committed.

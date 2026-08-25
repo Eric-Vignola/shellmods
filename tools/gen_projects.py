@@ -106,21 +106,18 @@ SHIM = Project(
 
 SYMGEN = Project(
     "symgen", "symgen", "Application",
-    sources=["main.cpp", "pdb_fetch.cpp"],
+    sources=["main.cpp", "pdb_fetch.cpp", "find_msdia.cpp"],
     includes=["$(VSInstallDir)DIA SDK\\include"],
     lib_dirs=["$(VSInstallDir)DIA SDK\\lib\\amd64"],
     defines=["_CONSOLE"],
     subsystem="Console",
-    # msdia140.dll has to sit beside the executable: symgen creates it with
-    # NoRegCoCreate from an explicit path rather than relying on a machine-wide
-    # COM registration that may not exist.
+    # No msdia140.dll is copied anywhere. symgen locates the copy already
+    # installed with Visual Studio at runtime (symgen/find_msdia.cpp), so
+    # nothing Microsoft-owned is staged into dist and nothing Microsoft-owned
+    # can end up in a published release.
     post_build=[
-        ('copy /y "$(VSInstallDir)DIA SDK\\bin\\amd64\\msdia140.dll" '
-         '"$(OutDir)" >nul'),
         'if not exist "$(ShellModsRoot)dist" mkdir "$(ShellModsRoot)dist"',
         'copy /y "$(TargetPath)" "$(ShellModsRoot)dist\\" >nul',
-        ('copy /y "$(VSInstallDir)DIA SDK\\bin\\amd64\\msdia140.dll" '
-         '"$(ShellModsRoot)dist\\" >nul'),
     ],
 )
 

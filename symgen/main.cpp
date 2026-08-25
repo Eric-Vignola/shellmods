@@ -11,10 +11,11 @@
 // Output: dist\offsets\<module>.sym -- "<hex rva>\t<decorated>\t<undecorated>",
 //         preceded by the fingerprint of the exact binary it was generated from.
 //
-// Requires msdia140.dll beside the executable; the build copies it from the DIA
-// SDK that ships with Visual Studio. It is redistributable -- see BUILD.md.
-// PDBs are fetched over plain HTTPS by symgen/pdb_fetch.cpp rather than through
-// symsrv.dll, so that is the only extra binary needed.
+// Requires msdia140.dll, which ships with Visual Studio. symgen finds the copy
+// already on the machine (see find_msdia.cpp) rather than carrying one, so this
+// project redistributes no Microsoft binaries. PDBs are fetched over plain HTTPS
+// by pdb_fetch.cpp rather than through symsrv.dll, so nothing else is needed
+// either.
 
 #include <windows.h>
 
@@ -22,6 +23,7 @@
 #include <diacreate.h>
 #include <tlhelp32.h>
 
+#include "find_msdia.h"
 #include "pdb_fetch.h"
 
 #include <algorithm>
@@ -596,7 +598,10 @@ int wmain(int argc, wchar_t** argv) {
     std::wstring outputDir = exeDir + L"\\..\\dist\\offsets";
     std::wstring symbolCacheDir;
     std::wstring symbolServer = kDefaultSymbolServer;
-    std::wstring msdiaPath = exeDir + L"\\msdia140.dll";
+    // Left empty unless --msdia is given. LocateMsdia treats a non-empty value
+    // as an explicit request and will not fall back to searching, so seeding it
+    // with a guess here would defeat the whole discovery path.
+    std::wstring msdiaPath;
     // Module paths are resolved from whatever this process currently has mapped,
     // which is the only reliable way to find the taskbar's SystemApps DLLs.
     std::wstring processName = L"explorer.exe";
@@ -653,12 +658,16 @@ int wmain(int argc, wchar_t** argv) {
         }
     }
 
-    if (!FileExists(msdiaPath)) {
-        Fail(L"%s not found. The build copies it from the DIA SDK; see "
-             L"BUILD.md.",
-             msdiaPath.c_str());
+    std::wstring searched;
+    msdiaPath = symgen::LocateMsdia(msdiaPath, exeDir, &searched);
+    if (msdiaPath.empty()) {
+        Fail(L"cannot find msdia140.dll. It ships with Visual Studio 2015 and "
+             L"newer; install any edition, including Build Tools, or pass "
+             L"--msdia <path>.\n  looked in:%s",
+             searched.c_str());
         return 1;
     }
+    Info(L"msdia: %s", msdiaPath.c_str());
 
     CreateDirectoryW(symbolCacheDir.c_str(), nullptr);
     CreateDirectoryW(outputDir.c_str(), nullptr);

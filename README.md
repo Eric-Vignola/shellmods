@@ -56,7 +56,9 @@ dist\symgen.exe
 ```
 
 That resolves the symbols the mods need against **your** Windows build (see
-below), writing `dist\offsets\*.sym`. Then:
+below), writing `dist\offsets\*.sym`. It needs `msdia140.dll`, which ships with
+any Visual Studio 2015 or newer including the free Build Tools; it is found
+automatically, and `--msdia <path>` overrides. Then:
 
 ```bash
 dist\shellmods.exe --once

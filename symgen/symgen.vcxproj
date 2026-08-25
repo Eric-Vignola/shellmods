@@ -37,9 +37,10 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="pdb_fetch.cpp" />
+    <ClCompile Include="find_msdia.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="ShellModsStage" AfterTargets="Build">
-    <Exec Command="copy /y &quot;$(VSInstallDir)DIA SDK\bin\amd64\msdia140.dll&quot; &quot;$(OutDir)&quot; &gt;nul&#xD;&#xA;if not exist &quot;$(ShellModsRoot)dist&quot; mkdir &quot;$(ShellModsRoot)dist&quot;&#xD;&#xA;copy /y &quot;$(TargetPath)&quot; &quot;$(ShellModsRoot)dist\&quot; &gt;nul&#xD;&#xA;copy /y &quot;$(VSInstallDir)DIA SDK\bin\amd64\msdia140.dll&quot; &quot;$(ShellModsRoot)dist\&quot; &gt;nul" />
+    <Exec Command="if not exist &quot;$(ShellModsRoot)dist&quot; mkdir &quot;$(ShellModsRoot)dist&quot;&#xD;&#xA;copy /y &quot;$(TargetPath)&quot; &quot;$(ShellModsRoot)dist\&quot; &gt;nul" />
   </Target>
 </Project>
