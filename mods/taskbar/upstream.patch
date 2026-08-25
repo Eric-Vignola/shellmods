@@ -1,0 +1,38 @@
+--- upstream/taskbar-icon-size.wh.cpp
++++ mods/taskbar/taskbar.wh.cpp
+@@ -366,7 +366,7 @@
+ void WINAPI IconUtils_GetIconSize_Hook(bool isSmall, int type, SIZE* size) {
+     [[maybe_unused]] static bool logged = [] {
+         Wh_Log(L"> [%S] First call, hasDynamicIconScaling=%d",
+-               __PRETTY_FUNCTION__, g_hasDynamicIconScaling);
++               __FUNCSIG__, g_hasDynamicIconScaling);
+         return true;
+     }();
+ 
+@@ -393,7 +393,7 @@
+                                                            int flags) {
+     [[maybe_unused]] static bool logged = [] {
+         Wh_Log(L"> [%S] First call, hasDynamicIconScaling=%d",
+-               __PRETTY_FUNCTION__, g_hasDynamicIconScaling);
++               __FUNCSIG__, g_hasDynamicIconScaling);
+         return true;
+     }();
+ 
+@@ -546,7 +546,7 @@
+                                                     double* iconHeight) {
+     [[maybe_unused]] static bool logged = [] {
+         Wh_Log(L"> [%S] First call, hasDynamicIconScaling=%d",
+-               __PRETTY_FUNCTION__, g_hasDynamicIconScaling);
++               __FUNCSIG__, g_hasDynamicIconScaling);
+         return true;
+     }();
+ 
+@@ -647,7 +647,7 @@
+ TaskbarConfiguration_GetIconHeightInViewPixels_method_Hook(void* pThis) {
+     [[maybe_unused]] static bool logged = [] {
+         Wh_Log(L"> [%S] First call, hasDynamicIconScaling=%d",
+-               __PRETTY_FUNCTION__, g_hasDynamicIconScaling);
++               __FUNCSIG__, g_hasDynamicIconScaling);
+         return true;
+     }();
+ 

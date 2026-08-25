@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{1209668E-91EE-509F-8845-BA948DC8AB72}</ProjectGuid>
+    <RootNamespace>filesizes</RootNamespace>
+    <ProjectName>filesizes</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="..\..\build\common.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <TargetName>filesizes64</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir);..\..\shim\include;..\..\shim\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DisableSpecificWarnings>4996;4005;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <ForcedIncludeFiles>mod_defines.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>ole32.lib;oleaut32.lib;propsys.lib;$(ShellModsComSupportLib);%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="filesizes.wh.cpp" />
+    <ClCompile Include="mod_glue.cpp" />
+    <ClCompile Include="..\..\shim\src\shim_modmain.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\shim\shim.vcxproj">
+      <Project>{3771D86F-13EE-51C5-9A97-5BD30C35FA7A}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\vendor\minhook.vcxproj">
+      <Project>{925C5AC2-6A5E-5C53-8523-FD640138B90C}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\vendor\zydis.vcxproj">
+      <Project>{C21B8810-C78D-5EC0-90E5-04AA20E6068E}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="ShellModsStage" AfterTargets="Build">
+    <Exec Command="if not exist &quot;$(ShellModsRoot)dist\mods&quot; mkdir &quot;$(ShellModsRoot)dist\mods&quot;&#xD;&#xA;copy /y &quot;$(TargetPath)&quot; &quot;$(ShellModsRoot)dist\mods\&quot; &gt;nul&#xD;&#xA;if errorlevel 1 (&#xD;&#xA;  echo [shellmods] Could not stage $(TargetFileName): it is loaded in a running process.&#xD;&#xA;  echo [shellmods] &quot;$(ShellModsRoot)dist\shellmods.exe&quot; --status lists which processes hold it.&#xD;&#xA;  echo [shellmods] Restart those processes, then build again. Note that is not always just Explorer -- filesizes is also injected into Everything.exe.&#xD;&#xA;  exit /b 1&#xD;&#xA;)" />
+  </Target>
+</Project>
