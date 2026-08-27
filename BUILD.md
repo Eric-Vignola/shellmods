@@ -31,6 +31,7 @@ dist\
   shellmods.exe        the loader
   symgen.exe           the symbol resolver
   shellmods.ini        default settings (checked in, not generated)
+  symreq\              which symbols each mod needs (checked in)
   mods\
     taskbar64.dll
     ctxmenu64.dll
@@ -116,7 +117,10 @@ match count. If upstream changed such that a patch no longer applies, it fails
 and names the patch rather than silently producing something unreviewed. It also
 rewrites `mods\<mod>\upstream.patch` so the diff stays reviewable.
 
-`extract_symreq.py` re-derives the symbol name lists from the ported sources.
+`extract_symreq.py` re-derives the symbol name lists from the ported sources,
+into `dist/symreq/`. They live under `dist/` because they are runtime data:
+`symgen.exe` looks for `symreq\` beside itself, and the release archive is a
+copy of `dist/`.
 
 ## Notes on non-obvious build settings
 

@@ -130,6 +130,47 @@ std::wstring DirOfThisExe() {
     return slash == std::wstring::npos ? L"." : s.substr(0, slash);
 }
 
+bool DirHasSymreq(const std::wstring& dir) {
+    WIN32_FIND_DATAW found{};
+    HANDLE search = FindFirstFileW((dir + L"\\*.symreq").c_str(), &found);
+    if (search == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+    FindClose(search);
+    return true;
+}
+
+// symreq\ and offsets\ sit beside the executable, and this deliberately does not
+// traverse "..".
+//
+// It used to. The defaults were exeDir\..\symreq and exeDir\..\dist\offsets,
+// which are correct when symgen.exe is run from dist\ inside a source tree --
+// the only way it was ever tested -- and wrong in the released archive, where
+// symgen.exe is at the archive root and ".." escapes the extracted folder
+// entirely. So: one layout, resolved by looking for the data rather than
+// assuming a position relative to it.
+//
+//   released / staged   <root>\symgen.exe  <root>\symreq\  <root>\offsets\
+//   straight from build build\Release\symgen.exe  ->  <repo>\dist\...
+//
+// The second candidate exists only so that running the freshly linked binary
+// out of build\Release still works; everything shipped uses the first.
+std::wstring FindDataRoot(const std::wstring& exeDir,
+                          std::vector<std::wstring>* candidates) {
+    const std::wstring roots[] = {
+        exeDir,
+        exeDir + L"\\..\\..\\dist",
+    };
+    for (const std::wstring& root : roots) {
+        const std::wstring symreq = root + L"\\symreq";
+        candidates->push_back(symreq);
+        if (DirHasSymreq(symreq)) {
+            return root;
+        }
+    }
+    return std::wstring();
+}
+
 std::wstring Utf8ToWide(const std::string& s) {
     if (s.empty()) {
         return std::wstring();
@@ -579,11 +620,12 @@ int Usage() {
         L"\n"
         L"usage: symgen.exe [options] [<mod>.symreq ...]\n"
         L"\n"
-        L"With no .symreq given, every file in symreq\\ is processed.\n"
+        L"With no .symreq given, every file in symreq\\ beside this executable\n"
+        L"is processed, and .sym files are written to offsets\\ beside it.\n"
         L"\n"
         L"options:\n"
-        L"  --out <dir>       where to write .sym files (default: "
-        L"..\\dist\\offsets)\n"
+        L"  --symreq <dir>    where to look for .symreq files\n"
+        L"  --out <dir>       where to write .sym files\n"
         L"  --cache <dir>     local PDB cache (default: %%TEMP%%\\shellmods-symbols)\n"
         L"  --server <url>    symbol server (default: Microsoft public)\n"
         L"  --msdia <path>    msdia140.dll to use (default: beside symgen.exe)\n");
@@ -595,7 +637,9 @@ int Usage() {
 int wmain(int argc, wchar_t** argv) {
     const std::wstring exeDir = DirOfThisExe();
 
-    std::wstring outputDir = exeDir + L"\\..\\dist\\offsets";
+    // Both empty unless overridden; resolved from the data root after parsing.
+    std::wstring outputDir;
+    std::wstring symreqDir;
     std::wstring symbolCacheDir;
     std::wstring symbolServer = kDefaultSymbolServer;
     // Left empty unless --msdia is given. LocateMsdia treats a non-empty value
@@ -614,6 +658,8 @@ int wmain(int argc, wchar_t** argv) {
         };
         if (arg == L"--out") {
             outputDir = next();
+        } else if (arg == L"--symreq") {
+            symreqDir = next();
         } else if (arg == L"--cache") {
             symbolCacheDir = next();
         } else if (arg == L"--server") {
@@ -642,18 +688,43 @@ int wmain(int argc, wchar_t** argv) {
         symbolCacheDir = base + L"\\shellmods-symbols";
     }
 
+    // Resolve the data root even when .symreq files were named explicitly, so
+    // that --out still has a sensible default.
+    std::vector<std::wstring> searchedForSymreq;
+    const std::wstring dataRoot = FindDataRoot(exeDir, &searchedForSymreq);
+
+    if (symreqDir.empty() && !dataRoot.empty()) {
+        symreqDir = dataRoot + L"\\symreq";
+    }
+    if (outputDir.empty()) {
+        outputDir = (dataRoot.empty() ? exeDir : dataRoot) + L"\\offsets";
+    }
+
     if (requestFiles.empty()) {
-        const std::wstring dir = exeDir + L"\\..\\symreq";
+        if (symreqDir.empty()) {
+            std::wstring looked;
+            for (const std::wstring& candidate : searchedForSymreq) {
+                looked += L"\n    " + candidate;
+            }
+            Fail(L"no .symreq files found. They say which symbols each mod "
+                 L"needs, and ship in symreq\\ beside this executable.\n"
+                 L"  looked in:%s\n"
+                 L"  pass --symreq <dir>, or name .symreq files as arguments.",
+                 looked.c_str());
+            return 1;
+        }
+
         WIN32_FIND_DATAW found{};
-        HANDLE search = FindFirstFileW((dir + L"\\*.symreq").c_str(), &found);
+        HANDLE search =
+            FindFirstFileW((symreqDir + L"\\*.symreq").c_str(), &found);
         if (search != INVALID_HANDLE_VALUE) {
             do {
-                requestFiles.push_back(dir + L"\\" + found.cFileName);
+                requestFiles.push_back(symreqDir + L"\\" + found.cFileName);
             } while (FindNextFileW(search, &found));
             FindClose(search);
         }
         if (requestFiles.empty()) {
-            Fail(L"no .symreq files found in %s", dir.c_str());
+            Fail(L"no .symreq files in %s", symreqDir.c_str());
             return 1;
         }
     }
