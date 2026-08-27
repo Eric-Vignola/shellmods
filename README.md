@@ -47,6 +47,23 @@ Every one of those is expressed as an asserted patch in
 [tools/port_mods.py](tools/port_mods.py), so a future upstream change that
 invalidates one fails loudly instead of silently.
 
+## Running these commands
+
+Every example below uses a relative path with a separator (`dist\symgen.exe`,
+`.\shellmods.exe`), because that form works in both shells.
+
+If you write an absolute path in **PowerShell**, it needs the call operator:
+
+```powershell
+& "C:\path	o\shellmods.exe" --install
+```
+
+Without the `&`, PowerShell reads the quoted path as a string expression and
+then `--install` as the decrement operator, and you get
+`Unexpected token 'install' in expression or statement`. A bare `shellmods.exe`
+does not work either — PowerShell does not search the current directory. In
+`cmd.exe` both forms are fine.
+
 ## Install
 
 Build the solution, then:

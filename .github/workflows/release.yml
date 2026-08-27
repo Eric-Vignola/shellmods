@@ -218,7 +218,7 @@ jobs:
           Unzip, then run `symgen.exe` **once**:
 
           ```
-          symgen.exe
+          .\symgen.exe
           ```
 
           The mods hook functions Microsoft does not export, found by mangled
@@ -228,8 +228,11 @@ jobs:
           Then:
 
           ```
-          shellmods.exe --once      # or --install to start with Windows
+          .\shellmods.exe --once    # or --install to start with Windows
           ```
+
+          The leading `.\` matters in PowerShell, which does not search the
+          current directory for executables. In `cmd.exe` it is harmless.
 
           `symgen.exe` needs `msdia140.dll`, which comes with any Visual
           Studio 2015 or newer, including the free Build Tools. It is found
@@ -246,7 +249,7 @@ jobs:
 
           ## Turning it off
 
-          `shellmods.exe --disable` unhooks everything within a second, with
+          `.\shellmods.exe --disable` unhooks everything within a second, with
           no Explorer restart. Holding Shift at startup and safe mode also work.
 
           ## Note
