@@ -85,6 +85,20 @@ jobs:
           # purpose -- see the release notes.
           Copy-Item dist/* $stage -Recurse -Force
           Copy-Item README.md, BUILD.md, NOTICE.md, LICENSE $stage
+
+          # Anything in dist/ that belongs to one machine rather than to the
+          # release. On a runner only offsets/ shows up, and only as an empty
+          # directory created by the build -- but a developer running this
+          # locally has real .sym files, a log and possibly a DISABLE flag
+          # sitting there, and none of those should ever reach a user.
+          foreach ($local in @('offsets', 'shellmods.log', 'DISABLE', 'storage',
+                               'shellmods.ini')) {
+            $p = Join-Path $stage $local
+            if (Test-Path $p) {
+              Write-Host "  excluding machine-local: $local"
+              Remove-Item $p -Recurse -Force
+            }
+          }
           Get-ChildItem $stage -Recurse -File |
             ForEach-Object { $_.FullName.Substring((Resolve-Path 'stage').Path.Length + 1) }
 
@@ -101,6 +115,18 @@ jobs:
               'mods/taskbar64.dll', 'mods/ctxmenu64.dll', 'mods/filesizes64.dll')) {
             if (-not (Test-Path (Join-Path $stage $required))) {
               Write-Host "::error::missing from the release layout: $required"
+              exit 1
+            }
+          }
+
+          # The inverse check: nothing machine-local may ship. offsets/ in
+          # particular is fingerprinted to one Windows build and would be
+          # rejected as stale by every other machine, so shipping it would be
+          # actively misleading rather than merely useless.
+          foreach ($forbidden in @('offsets', 'shellmods.log', 'DISABLE',
+                                   'storage', 'shellmods.ini')) {
+            if (Test-Path (Join-Path $stage $forbidden)) {
+              Write-Host "::error::machine-local path present in the release layout: $forbidden"
               exit 1
             }
           }
