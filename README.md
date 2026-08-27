@@ -155,6 +155,23 @@ There are two files, on purpose:
 One trap worth repeating from the file's own header: **a key that is absent reads
 as 0**, not as the upstream default. Deleting a line sets it to zero.
 
+### Taskbar size (the taskbar mod)
+
+The four size values are **two pairs**, and Windows picks between them at
+runtime — builds with dynamic icon scaling fall back to the `...Small` pair as
+the taskbar fills up.
+
+| Medium | Small |
+|---|---|
+| `IconSize` | `IconSizeSmall` |
+| `TaskbarButtonWidth` | `TaskbarButtonWidthSmall` |
+
+Scaling only the medium pair looks right with a few apps open and then degrades
+as you launch more: icons keep their large size while the width allotted to each
+button collapses to the small value, so they crowd together and the unused space
+appears at the ends of the bar. Setting each `...Small` value equal to its
+partner makes the two layouts identical, which is the safe default.
+
 ### Folder sizes (the filesizes mod)
 
 This mod has two independent features, and only one is on by default:
