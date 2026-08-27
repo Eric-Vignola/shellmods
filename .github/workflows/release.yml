@@ -109,7 +109,16 @@ jobs:
       - name: Smoke-test the staged layout
         shell: pwsh
         run: |
-          $stage = 'stage/shellmods'
+          # A copy, not stage/ itself. Running symgen is the whole point of this
+          # step, and symgen creates offsets\ before it tries to download
+          # anything -- so testing in place re-created the very directory the
+          # staging step had just removed, after the assertion below had already
+          # passed. v1.0.1 shipped with an empty offsets\ for exactly that
+          # reason. The tree that gets zipped is now never the tree that gets
+          # poked at.
+          $stage = 'stage-test/shellmods'
+          New-Item -ItemType Directory -Force 'stage-test' | Out-Null
+          Copy-Item 'stage/shellmods' 'stage-test/shellmods' -Recurse -Force
           foreach ($required in @(
               'symgen.exe', 'shellmods.exe', 'shellmods.default.ini',
               'mods/taskbar64.dll', 'mods/ctxmenu64.dll', 'mods/filesizes64.dll')) {
