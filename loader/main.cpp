@@ -451,6 +451,28 @@ int wmain(int argc, wchar_t** argv) {
         return Usage();
     }
 
+    // shellmods.ini is the live config and is not tracked in git; only
+    // shellmods.default.ini ships. Seed one from the other on first run.
+    //
+    // The split exists because the two roles conflict: a single tracked file is
+    // simultaneously the shipped default and whatever the local machine is tuned
+    // to, so any `git add -A` republishes someone's taskbar dimensions as the
+    // project's defaults. Copying, rather than reading the default directly as a
+    // fallback, means the user has one obvious file to edit.
+    if (!FileExists(IniPath())) {
+        const std::wstring defaults = g_baseDir + L"\\shellmods.default.ini";
+        if (FileExists(defaults) &&
+            CopyFileW(defaults.c_str(), IniPath().c_str(), TRUE)) {
+            Print(L"created %s from shellmods.default.ini", IniPath().c_str());
+            Print(L"edit that file to change settings; it is never overwritten "
+                  L"once it exists");
+        } else {
+            Print(L"warning: neither %s nor shellmods.default.ini found; every "
+                  L"setting falls back to 0, which is probably not what you want",
+                  IniPath().c_str());
+        }
+    }
+
     std::wstring error;
 
     if (command == L"--install") {
@@ -515,12 +537,6 @@ int wmain(int argc, wchar_t** argv) {
 
     if (command == L"--status") {
         return Status();
-    }
-
-    if (!FileExists(IniPath())) {
-        Print(L"warning: %s not found; every setting falls back to 0, which is "
-              L"probably not what you want",
-              IniPath().c_str());
     }
 
     if (command == L"--watch") {

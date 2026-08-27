@@ -128,6 +128,13 @@ mode matters because it is your way back in if a hook ever does break the shell.
 Edit `dist\shellmods.ini`. Changes apply live — no restart. Every value is one of
 the mod's upstream Windhawk settings, pre-filled with upstream's default.
 
+There are two files, on purpose:
+
+| | |
+|---|---|
+| `shellmods.default.ini` | shipped defaults, tracked in git. Don't edit. |
+| `shellmods.ini` | yours. Gitignored, so local tuning is never published. Created from the default on first run and never overwritten after. |
+
 One trap worth repeating from the file's own header: **a key that is absent reads
 as 0**, not as the upstream default. Deleting a line sets it to zero.
 

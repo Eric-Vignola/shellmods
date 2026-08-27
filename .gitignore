@@ -8,7 +8,11 @@ build/bin/
 #   shellmods.exe, symgen.exe, msdia140.dll  <- build output
 #   mods/*.dll                               <- build output
 #   offsets/*.sym                            <- symgen.exe
-# shellmods.ini is the exception: it is checked in as the default config.
+# shellmods.ini is your live config and is deliberately NOT tracked -- otherwise
+# every `git add -A` republishes whatever the local machine happens to be tuned
+# to. shellmods.default.ini carries the shipped defaults; the loader copies it
+# across on first run.
+dist/shellmods.ini
 dist/mods/
 dist/offsets/
 dist/*.exe
@@ -22,7 +26,3 @@ dist/storage/
 .vs/
 *.user
 *.suo
-
-# Local scratch copies of the config. shellmods.ini itself is checked in as the
-# default; anything else in dist/ is either built or generated.
-dist/*.defaults.ini
