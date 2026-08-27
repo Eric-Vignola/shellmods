@@ -114,22 +114,39 @@ jobs:
           Write-Host "symreq: $($symreq.Count) file(s)"
 
           # Run symgen from where a user would, and confirm it locates its own
-          # data rather than failing on a path outside the folder. --server
-          # points nowhere, so this stops at the first download and never
-          # touches Microsoft's symbol server from CI.
+          # data rather than a path outside the folder. --server points at a
+          # closed port on purpose: the run gets as far as constructing the PDB
+          # URL and then stops, so this never pulls hundreds of megabytes from
+          # Microsoft's symbol server on every build.
+          #
+          # symgen therefore exits non-zero by design, and GitHub's pwsh shell
+          # appends an `exit $LASTEXITCODE`. Everything below asserts on the
+          # captured output and the step ends with an explicit exit 0.
           Push-Location $stage
           $out = & .\symgen.exe --server http://127.0.0.1:9 2>&1 | Out-String
           Pop-Location
           Write-Host $out
+
           if ($out -match 'no \.symreq files') {
             Write-Host "::error::symgen could not find its .symreq files in the release layout"
             exit 1
           }
-          if ($out -notmatch 'symreq') {
-            Write-Host "::error::symgen did not report reading any .symreq file"
+          if ($out -notmatch [regex]::Escape('symreq\')) {
+            Write-Host "::error::symgen did not report reading a .symreq file from symreq\"
+            exit 1
+          }
+          # A constructed PDB URL proves the whole local chain worked: symreq
+          # read, module located on this machine, PE debug record parsed.
+          if ($out -notmatch '127\.0\.0\.1:9/.+\.pdb/[0-9A-F]{33}/') {
+            Write-Host "::error::symgen never got as far as building a PDB URL"
+            exit 1
+          }
+          if ($out -notmatch 'msdia:') {
+            Write-Host "::error::symgen did not locate msdia140.dll on the runner"
             exit 1
           }
           Write-Host "symgen resolved its own paths in the staged layout."
+          exit 0
 
       - name: Zip
         shell: pwsh
