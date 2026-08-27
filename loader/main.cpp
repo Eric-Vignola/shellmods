@@ -379,15 +379,42 @@ int Usage() {
 int Status() {
     Print(L"base dir:  %s", g_baseDir.c_str());
 
+    // Autostart lives in HKCU and the watcher answers on a per-session event, so
+    // both are machine-wide: a second copy of shellmods unpacked elsewhere
+    // reports the first copy's registration as though it were its own. Say
+    // plainly when the registered path is not this executable, because
+    // otherwise --status is quietly describing a different folder.
     std::wstring autostart;
     if (loader::QueryAutostart(&autostart)) {
         Print(L"autostart: %s", autostart.c_str());
+
+        wchar_t self[MAX_PATH];
+        DWORD len = GetModuleFileNameW(nullptr, self, ARRAYSIZE(self));
+        // The registered value is "<path>" --watch; take what is between the
+        // first pair of quotes.
+        const size_t open = autostart.find(L'"');
+        const size_t close = autostart.find(L'"', open + 1);
+        if (len > 0 && len < ARRAYSIZE(self) && open != std::wstring::npos &&
+            close != std::wstring::npos) {
+            const std::wstring registered =
+                autostart.substr(open + 1, close - open - 1);
+            if (_wcsicmp(registered.c_str(), self) != 0) {
+                Print(L"           ^ a DIFFERENT copy. This executable is %s",
+                      self);
+            }
+        }
     } else {
         Print(L"autostart: not registered  (--install to add it)");
     }
 
-    Print(L"watcher:   %s",
-          loader::IsWatcherRunning() ? L"running" : L"not running");
+    const bool watching = loader::IsWatcherRunning();
+    Print(L"watcher:   %s", watching ? L"running" : L"not running");
+    if (watching) {
+        // The stop event is named per session, not per folder, so any copy's
+        // watcher answers here -- and --stop would end whichever one is running,
+        // not necessarily this folder's.
+        Print(L"           (session-wide: could belong to another copy)");
+    }
 
     const wchar_t* blocked = BlockReason();
     Print(L"blocked:   %s", blocked ? blocked : L"no");
