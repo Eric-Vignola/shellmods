@@ -97,7 +97,7 @@ jobs:
         run: |
           $stage = 'stage/shellmods'
           foreach ($required in @(
-              'symgen.exe', 'shellmods.exe', 'shellmods.ini',
+              'symgen.exe', 'shellmods.exe', 'shellmods.default.ini',
               'mods/taskbar64.dll', 'mods/ctxmenu64.dll', 'mods/filesizes64.dll')) {
             if (-not (Test-Path (Join-Path $stage $required))) {
               Write-Host "::error::missing from the release layout: $required"

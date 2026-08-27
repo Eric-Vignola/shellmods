@@ -30,7 +30,9 @@ leaves a ready-to-run layout:
 dist\
   shellmods.exe        the loader
   symgen.exe           the symbol resolver
-  shellmods.ini        default settings (checked in, not generated)
+  shellmods.default.ini  shipped defaults (tracked)
+  shellmods.ini          your live config (gitignored; created from the
+                         default on first run, never overwritten after)
   symreq\              which symbols each mod needs (checked in)
   mods\
     taskbar64.dll
