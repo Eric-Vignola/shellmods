@@ -51,8 +51,13 @@ jobs:
             Write-Host "  found $p"
           }
 
+      # ShellModsBuildRoot pins the output back inside the workspace, so that
+      # build\Release\ is where the steps below look for it. The default in
+      # build/common.props puts output under %LOCALAPPDATA% instead, because a
+      # source tree on a synced drive cannot be built in place -- see the
+      # comment there.
       - name: Build
-        run: msbuild shellmods.sln /p:Configuration=Release /p:Platform=x64 /m /v:minimal
+        run: msbuild shellmods.sln /p:Configuration=Release /p:Platform=x64 /m /v:minimal /p:ShellModsBuildRoot=${{ github.workspace }}\build\
 
       # Guards the Wh_Disasm text contract that taskbar-icon-size depends on:
       # the mod recovers a struct offset by running a regex over disassembly

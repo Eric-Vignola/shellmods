@@ -34,9 +34,25 @@
     <WholeProgramOptimization Condition="'$(Configuration)'=='Release'">false</WholeProgramOptimization>
   </PropertyGroup>
 
+  <!--
+    Build output lands outside the source tree by default.
+
+    It is ~130 MB of object files rewritten on every build, it is gitignored, and
+    the source tree may well be on a synced or network drive. On Google Drive
+    File Stream a full rebuild does not merely run slowly, it stalls: every
+    cl.exe sits blocked on I/O with under a second of CPU each while
+    GoogleDriveFS burns tens of minutes of CPU trying to sync the .obj files as
+    they are written.
+
+    Override to put it back beside the source, which is what CI does so that
+    build\Release\ is where the workflow expects:
+
+        msbuild ... /p:ShellModsBuildRoot=C:\path\to\repo\build\
+  -->
   <PropertyGroup>
-    <OutDir>$(ShellModsRoot)build\$(Configuration)\</OutDir>
-    <IntDir>$(ShellModsRoot)build\obj\$(Configuration)\$(ProjectName)\</IntDir>
+    <ShellModsBuildRoot Condition="'$(ShellModsBuildRoot)' == ''">$(LOCALAPPDATA)\shellmods-build\</ShellModsBuildRoot>
+    <OutDir>$(ShellModsBuildRoot)$(Configuration)\</OutDir>
+    <IntDir>$(ShellModsBuildRoot)obj\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
 
   <ItemDefinitionGroup>
