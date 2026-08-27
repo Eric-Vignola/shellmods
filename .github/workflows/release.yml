@@ -88,6 +88,49 @@ jobs:
           Get-ChildItem $stage -Recurse -File |
             ForEach-Object { $_.FullName.Substring((Resolve-Path 'stage').Path.Length + 1) }
 
+      # The test that was missing when a release shipped with no symreq\ in it
+      # and symgen resolving its paths through "..", which works in a source
+      # tree and points outside the archive anywhere else. Exercise the staged
+      # layout, not the source tree.
+      - name: Smoke-test the staged layout
+        shell: pwsh
+        run: |
+          $stage = 'stage/shellmods'
+          foreach ($required in @(
+              'symgen.exe', 'shellmods.exe', 'shellmods.ini',
+              'mods/taskbar64.dll', 'mods/ctxmenu64.dll', 'mods/filesizes64.dll')) {
+            if (-not (Test-Path (Join-Path $stage $required))) {
+              Write-Host "::error::missing from the release layout: $required"
+              exit 1
+            }
+          }
+
+          $symreq = Get-ChildItem (Join-Path $stage 'symreq') -Filter *.symreq -ErrorAction SilentlyContinue
+          if ($symreq.Count -lt 3) {
+            Write-Host "::error::expected 3 .symreq files in the release layout, found $($symreq.Count)"
+            Write-Host "Without them symgen has nothing to resolve and the archive is inert."
+            exit 1
+          }
+          Write-Host "symreq: $($symreq.Count) file(s)"
+
+          # Run symgen from where a user would, and confirm it locates its own
+          # data rather than failing on a path outside the folder. --server
+          # points nowhere, so this stops at the first download and never
+          # touches Microsoft's symbol server from CI.
+          Push-Location $stage
+          $out = & .\symgen.exe --server http://127.0.0.1:9 2>&1 | Out-String
+          Pop-Location
+          Write-Host $out
+          if ($out -match 'no \.symreq files') {
+            Write-Host "::error::symgen could not find its .symreq files in the release layout"
+            exit 1
+          }
+          if ($out -notmatch 'symreq') {
+            Write-Host "::error::symgen did not report reading any .symreq file"
+            exit 1
+          }
+          Write-Host "symgen resolved its own paths in the staged layout."
+
       - name: Zip
         shell: pwsh
         run: |
