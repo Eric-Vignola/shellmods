@@ -113,11 +113,10 @@ SYMGEN = Project(
     subsystem="Console",
     # No msdia140.dll is copied anywhere. symgen locates the copy already
     # installed with Visual Studio at runtime (symgen/find_msdia.cpp), so
-    # nothing Microsoft-owned is staged into dist and nothing Microsoft-owned
+    # nothing Microsoft-owned is staged beside it and nothing Microsoft-owned
     # can end up in a published release.
     post_build=[
-        'if not exist "$(ShellModsRoot)dist" mkdir "$(ShellModsRoot)dist"',
-        'copy /y "$(TargetPath)" "$(ShellModsRoot)dist\\" >nul',
+        'copy /y "$(TargetPath)" "$(ShellModsRoot)" >nul',
     ],
 )
 
@@ -128,8 +127,7 @@ LOADER = Project(
     defines=["_CONSOLE"],
     subsystem="Console",
     post_build=[
-        'if not exist "$(ShellModsRoot)dist" mkdir "$(ShellModsRoot)dist"',
-        'copy /y "$(TargetPath)" "$(ShellModsRoot)dist\\" >nul',
+        'copy /y "$(TargetPath)" "$(ShellModsRoot)" >nul',
     ],
 )
 
@@ -158,9 +156,9 @@ def mod(name, mod_id, version, libs, extra_disabled_warnings=()):
         target_name=f"{name}64",
         subsystem="Windows",
         post_build=[
-            'if not exist "$(ShellModsRoot)dist\\mods" '
-            'mkdir "$(ShellModsRoot)dist\\mods"',
-            'copy /y "$(TargetPath)" "$(ShellModsRoot)dist\\mods\\" >nul',
+            'if not exist "$(ShellModsRoot)mods" '
+            'mkdir "$(ShellModsRoot)mods"',
+            'copy /y "$(TargetPath)" "$(ShellModsRoot)mods\\" >nul',
             # Staging fails while the mod is loaded in Explorer, which is the
             # normal state once you are actually using this. Left alone that
             # surfaces as a bare "copy ... exited with code 1"; say what to do
@@ -168,7 +166,7 @@ def mod(name, mod_id, version, libs, extra_disabled_warnings=()):
             'if errorlevel 1 (',
             '  echo [shellmods] Could not stage $(TargetFileName): it is '
             'loaded in a running process.',
-            '  echo [shellmods] "$(ShellModsRoot)dist\\shellmods.exe" '
+            '  echo [shellmods] "$(ShellModsRoot)shellmods.exe" '
             '--status lists which processes hold it.',
             '  echo [shellmods] Restart those processes, then build again. '
             'Note that is not always just Explorer -- filesizes is also '

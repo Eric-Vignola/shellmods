@@ -63,11 +63,12 @@ void RunUninit() {
     // megabytes in explorer.exe; unmapping under a live thread costs a crash.
 }
 
-// FindFirstChangeNotification watches a directory, not a file, and dist\ holds
-// shellmods.log as well as shellmods.ini. Acting on every notification would
-// mean our own log write wakes us up, and reacting to that wake-up logs again --
-// a loop that never settles. So the notification is only a hint: what decides
-// whether anything happened is whether the INI's own timestamp and size moved.
+// FindFirstChangeNotification watches a directory, not a file, and the install
+// root holds shellmods.log as well as shellmods.ini. Acting on every
+// notification would mean our own log write wakes us up, and reacting to that
+// wake-up logs again -- a loop that never settles. So the notification is only
+// a hint: what decides whether anything happened is whether the INI's own
+// timestamp and size moved.
 struct IniStamp {
     FILETIME written{};
     DWORD sizeLow = 0;
@@ -91,10 +92,10 @@ IniStamp ReadIniStamp() {
     return stamp;
 }
 
-// Watching dist\ rather than waiting on a named event means every process
-// hosting this mod picks up a change independently, with no coordination and no
-// broadcast to get wrong. Two things are worth reacting to: an edit to
-// shellmods.ini, and the DISABLE kill switch appearing.
+// Watching the install root rather than waiting on a named event means every
+// process hosting this mod picks up a change independently, with no
+// coordination and no broadcast to get wrong. Two things are worth reacting
+// to: an edit to shellmods.ini, and the DISABLE kill switch appearing.
 DWORD WINAPI ControlThread(LPVOID) {
     if (!Startup(g_thisModule)) {
         return 0;

@@ -65,47 +65,58 @@ jobs:
       - name: Test
         run: .\build\Release\disasm_test.exe
 
-      # This project deliberately redistributes nothing Microsoft-owned:
-      # symgen locates msdia140.dll from the local Visual Studio install at
-      # runtime. If a change ever reintroduces the old copy step, catch it here
-      # rather than in a published release.
-      - name: Check no Microsoft binaries are staged
-        shell: pwsh
-        run: |
-          $bad = Get-ChildItem dist -Recurse -File |
-                 Where-Object { $_.Name -match '^(msdia|symsrv|dbghelp|msvc|vcruntime)' }
-          if ($bad) {
-            $bad | ForEach-Object { Write-Host "::error::unexpected redistributable staged: $($_.FullName)" }
-            exit 1
-          }
-          Write-Host "dist contains no Microsoft redistributables."
-
       - name: Stage the release layout
         shell: pwsh
         run: |
           $stage = 'stage/shellmods'
           New-Item -ItemType Directory -Force $stage | Out-Null
-          # dist/ is the runtime layout the loader expects: shellmods.exe and
-          # symgen.exe at the root, mod DLLs under mods/. offsets/ is absent on
-          # purpose -- see the release notes.
-          Copy-Item dist/* $stage -Recurse -Force
-          Copy-Item README.md, BUILD.md, NOTICE.md, LICENSE $stage
 
-          # Anything in dist/ that belongs to one machine rather than to the
-          # release. On a runner only offsets/ shows up, and only as an empty
-          # directory created by the build -- but a developer running this
-          # locally has real .sym files, a log and possibly a DISABLE flag
-          # sitting there, and none of those should ever reach a user.
-          foreach ($local in @('offsets', 'shellmods.log', 'DISABLE', 'storage',
-                               'shellmods.ini')) {
-            $p = Join-Path $stage $local
-            if (Test-Path $p) {
-              Write-Host "  excluding machine-local: $local"
-              Remove-Item $p -Recurse -Force
+          # The runtime layout the loader expects: shellmods.exe and symgen.exe
+          # at the root, mod DLLs under mods\, symreq\ beside them.
+          #
+          # This is an explicit list rather than a directory copy, and it has to
+          # be: the build stages into the repository root, so "what ships" and
+          # "the source tree" are now the same directory. mods\ in particular
+          # holds both the built DLLs and the three mod source directories, so
+          # only *.dll is taken from it. offsets\ is absent on purpose -- see
+          # the release notes -- and nothing machine-local is named here at all.
+          foreach ($item in @('shellmods.exe', 'symgen.exe',
+                              'shellmods.default.ini', 'symreq')) {
+            if (-not (Test-Path $item)) {
+              Write-Host "::error::missing from the build: $item"
+              exit 1
             }
+            Copy-Item $item $stage -Recurse -Force
           }
+
+          $modDir = Join-Path $stage 'mods'
+          New-Item -ItemType Directory -Force $modDir | Out-Null
+          $dlls = @(Get-ChildItem 'mods/*.dll' -File)
+          if ($dlls.Count -ne 3) {
+            Write-Host "::error::expected 3 mod DLLs, found $($dlls.Count)"
+            exit 1
+          }
+          Copy-Item $dlls $modDir -Force
+
+          Copy-Item README.md, BUILD.md, NOTICE.md, LICENSE $stage
           Get-ChildItem $stage -Recurse -File |
             ForEach-Object { $_.FullName.Substring((Resolve-Path 'stage').Path.Length + 1) }
+
+      # This project deliberately redistributes nothing Microsoft-owned:
+      # symgen locates msdia140.dll from the local Visual Studio install at
+      # runtime. If a change ever reintroduces the old copy step, catch it here
+      # rather than in a published release. The staged tree is the thing to
+      # check -- it is exactly what gets zipped.
+      - name: Check no Microsoft binaries are staged
+        shell: pwsh
+        run: |
+          $bad = Get-ChildItem stage -Recurse -File |
+                 Where-Object { $_.Name -match '^(msdia|symsrv|dbghelp|msvc|vcruntime)' }
+          if ($bad) {
+            $bad | ForEach-Object { Write-Host "::error::unexpected redistributable staged: $($_.FullName)" }
+            exit 1
+          }
+          Write-Host "the staged layout contains no Microsoft redistributables."
 
       # The test that was missing when a release shipped with no symreq\ in it
       # and symgen resolving its paths through "..", which works in a source

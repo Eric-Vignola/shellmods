@@ -8,7 +8,7 @@
 // small text file of offsets.
 //
 // Input:  symreq\<mod>.symreq -- which modules, and which symbol names.
-// Output: dist\offsets\<module>.sym -- "<hex rva>\t<decorated>\t<undecorated>",
+// Output: offsets\<module>.sym -- "<hex rva>\t<decorated>\t<undecorated>",
 //         preceded by the fingerprint of the exact binary it was generated from.
 //
 // Requires msdia140.dll, which ships with Visual Studio. symgen finds the copy
@@ -144,14 +144,15 @@ bool DirHasSymreq(const std::wstring& dir) {
 // traverse "..".
 //
 // It used to. The defaults were exeDir\..\symreq and exeDir\..\dist\offsets,
-// which are correct when symgen.exe is run from dist\ inside a source tree --
-// the only way it was ever tested -- and wrong in the released archive, where
+// which are correct when symgen.exe is run from a staging subdirectory of a
+// source tree -- the only way it was ever tested -- and wrong in the released
+// archive, where
 // symgen.exe is at the archive root and ".." escapes the extracted folder
 // entirely. So: one layout, resolved by looking for the data rather than
 // assuming a position relative to it.
 //
 //   released / staged   <root>\symgen.exe  <root>\symreq\  <root>\offsets\
-//   straight from build build\Release\symgen.exe  ->  <repo>\dist\...
+//   straight from build build\Release\symgen.exe  ->  <repo>\...
 //
 // The second candidate exists only so that running the freshly linked binary
 // out of build\Release still works; everything shipped uses the first.
@@ -159,7 +160,7 @@ std::wstring FindDataRoot(const std::wstring& exeDir,
                           std::vector<std::wstring>* candidates) {
     const std::wstring roots[] = {
         exeDir,
-        exeDir + L"\\..\\..\\dist",
+        exeDir + L"\\..\\..",
     };
     for (const std::wstring& root : roots) {
         const std::wstring symreq = root + L"\\symreq";

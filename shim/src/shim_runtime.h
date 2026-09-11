@@ -20,7 +20,7 @@ namespace shim {
 // Mod identity, baked in per-project via /D WH_MOD_ID and /D WH_MOD_VERSION.
 extern std::wstring g_modId;
 
-// dist/ root: the parent of the directory holding this mod DLL. Anchors
+// Install root: the parent of the directory holding this mod DLL. Anchors
 // shellmods.ini, offsets\, storage\, shellmods.log and the DISABLE kill switch.
 extern std::wstring g_baseDir;
 

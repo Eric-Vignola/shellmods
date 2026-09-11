@@ -41,6 +41,6 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="ShellModsStage" AfterTargets="Build">
-    <Exec Command="if not exist &quot;$(ShellModsRoot)dist&quot; mkdir &quot;$(ShellModsRoot)dist&quot;&#xD;&#xA;copy /y &quot;$(TargetPath)&quot; &quot;$(ShellModsRoot)dist\&quot; &gt;nul" />
+    <Exec Command="copy /y &quot;$(TargetPath)&quot; &quot;$(ShellModsRoot)&quot; &gt;nul" />
   </Target>
 </Project>

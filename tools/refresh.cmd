@@ -5,7 +5,7 @@ rem
 rem This is the whole maintenance story: run it after a Windows update that
 rem touches the shell. No compiler needed -- the offsets are data, not code.
 setlocal
-set DIST=%~dp0..\dist
+set DIST=%~dp0..
 
 if not exist "%DIST%\symgen.exe" (
     echo Build the solution first: symgen.exe is missing from %DIST%

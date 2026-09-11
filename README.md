@@ -49,7 +49,7 @@ invalidates one fails loudly instead of silently.
 
 ## Running these commands
 
-Every example below uses a relative path with a separator (`dist\symgen.exe`,
+Every example below uses a relative path with a separator (`.\symgen.exe`,
 `.\shellmods.exe`), because that form works in both shells.
 
 If you write an absolute path in **PowerShell**, it needs the call operator:
@@ -69,24 +69,24 @@ does not work either — PowerShell does not search the current directory. In
 Build the solution, then:
 
 ```bash
-dist\symgen.exe
+.\symgen.exe
 ```
 
-That reads `dist\symreq\*.symreq`, resolves those symbols against **your**
-Windows build (see below), and writes `dist\offsets\*.sym`.
+That reads `symreq\*.symreq`, resolves those symbols against **your** Windows
+build (see below), and writes `offsets\*.sym`.
 
 It needs `msdia140.dll`, which ships with any Visual Studio 2015 or newer,
 including the free Build Tools. It is found automatically; `--msdia <path>`
 overrides. Then:
 
 ```bash
-dist\shellmods.exe --once
+.\shellmods.exe --once
 ```
 
 To make it permanent:
 
 ```bash
-dist\shellmods.exe --install
+.\shellmods.exe --install
 ```
 
 One executable, one startup entry. No service, and **no elevation** — Explorer
@@ -123,12 +123,12 @@ path instead of being killed mid-operation.
 ## Turning it off
 
 ```bash
-dist\shellmods.exe --disable
+.\shellmods.exe --disable
 ```
 
 That makes every already-injected mod **unhook itself within a second**, without
-restarting Explorer — each mod watches `dist\` for changes. It also stops the
-loader injecting anything new. `--enable` removes the flag.
+restarting Explorer — each mod watches the install directory for changes. It
+also stops the loader injecting anything new. `--enable` removes the flag.
 
 One asymmetry worth knowing: `--enable` does not bring the mods back. A DLL that
 is already mapped cannot be re-initialised by injecting again — `LoadLibrary`
@@ -142,7 +142,7 @@ mode matters because it is your way back in if a hook ever does break the shell.
 
 ## Settings
 
-Edit `dist\shellmods.ini`. Changes apply live — no restart. Every value is one of
+Edit `shellmods.ini`. Changes apply live — no restart. Every value is one of
 the mod's upstream Windhawk settings, pre-filled with upstream's default.
 
 There are two files, on purpose:
@@ -207,7 +207,7 @@ there is nothing there to hook.
 Two levels, on purpose:
 
 - The shim's own diagnostics — which symbol files loaded, and whether any have
-  gone stale — **always** go to `dist\shellmods.log`. A handful of lines per
+  gone stale — **always** go to `shellmods.log`. A handful of lines per
   injection. These are never suppressed, because a stale symbol file is exactly
   the thing you need told about when the mods quietly stop working.
 - `Log=1` under `[shellmods]` additionally traces every hook the mods take. Only
@@ -236,7 +236,7 @@ how you get a shell that crashes in a loop.
 So after a Patch Tuesday that touches the shell, the mods go quiet and you run:
 
 ```bash
-dist\symgen.exe
+.\symgen.exe
 ```
 
 …then restart Explorer. No compiler needed, no rebuild — the offsets are data,

@@ -4,36 +4,29 @@ build/Debug/
 build/obj/
 build/bin/
 
-# Staged runtime layout. Everything here is either built or generated:
-#   shellmods.exe, symgen.exe, msdia140.dll  <- build output
-#   mods/*.dll                               <- build output
-#   offsets/*.sym                            <- symgen.exe
+# Staged runtime layout. The build stages into the repository root, so the
+# root holds source and runtime side by side. Everything below is either built
+# or generated:
+#   shellmods.exe, symgen.exe  <- build output
+#   mods/*.dll                 <- build output
+#   offsets/*.sym              <- symgen.exe
 # shellmods.ini is your live config and is deliberately NOT tracked -- otherwise
 # every `git add -A` republishes whatever the local machine happens to be tuned
 # to. shellmods.default.ini carries the shipped defaults; the loader copies it
 # across on first run.
-dist/shellmods.ini
-dist/mods/
-dist/offsets/
-dist/*.exe
-dist/*.dll
-dist/*.pdb
-dist/shellmods.log
-dist/DISABLE
-dist/storage/
-
-# The same runtime layout when it is staged at the repository root instead of
-# under dist\ -- which is what a flattened install looks like. Without these,
-# a single `git add -A` republishes the live config, the loader, the mod DLLs,
-# the resolved offsets and the log.
-/shellmods.ini
-/shellmods.log
 /shellmods.exe
 /symgen.exe
+/*.pdb
 /mods/*.dll
 /offsets/
+/shellmods.ini
+/shellmods.log
 /DISABLE
 /storage/
+
+# dist\ was the staging directory before the build moved to the root. Ignored
+# wholesale so a leftover one does not show up as untracked work.
+/dist/
 
 # Visual Studio
 .vs/

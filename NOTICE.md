@@ -49,12 +49,13 @@ so that upstream mod sources compile against them without edits — see
 
 ## Not redistributed here
 
-`msdia140.dll` is **not** committed, not staged into `dist/`, and not included in
+`msdia140.dll` is **not** committed, not staged beside the loader, and not
+included in
 released archives. `symgen.exe` locates the copy already installed with Visual
 Studio at runtime — see `symgen/find_msdia.cpp`. It is on Microsoft's
 redistributable list, so shipping it would be permitted; not shipping it is
 simply cleaner, and the release workflow has a step that fails the build if a
-Microsoft binary ever reappears in `dist/`.
+Microsoft binary ever reappears in the staged layout.
 
 The consequence is that `symgen.exe` needs some Visual Studio 2015-or-newer
 installation present, including the free Build Tools. Failing that, dropping

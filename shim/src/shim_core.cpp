@@ -105,7 +105,7 @@ bool Startup(HMODULE thisModule) {
         return false;
     }
 
-    // ...\dist\mods\taskbar64.dll -> ...\dist
+    // ...\<root>\mods\taskbar64.dll -> ...\<root>
     PathRemoveFileSpecW(modulePath);
     PathRemoveFileSpecW(modulePath);
     g_baseDir = modulePath;

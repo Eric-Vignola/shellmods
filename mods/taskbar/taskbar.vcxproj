@@ -53,6 +53,6 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="ShellModsStage" AfterTargets="Build">
-    <Exec Command="if not exist &quot;$(ShellModsRoot)dist\mods&quot; mkdir &quot;$(ShellModsRoot)dist\mods&quot;&#xD;&#xA;copy /y &quot;$(TargetPath)&quot; &quot;$(ShellModsRoot)dist\mods\&quot; &gt;nul&#xD;&#xA;if errorlevel 1 (&#xD;&#xA;  echo [shellmods] Could not stage $(TargetFileName): it is loaded in a running process.&#xD;&#xA;  echo [shellmods] &quot;$(ShellModsRoot)dist\shellmods.exe&quot; --status lists which processes hold it.&#xD;&#xA;  echo [shellmods] Restart those processes, then build again. Note that is not always just Explorer -- filesizes is also injected into Everything.exe.&#xD;&#xA;  exit /b 1&#xD;&#xA;)" />
+    <Exec Command="if not exist &quot;$(ShellModsRoot)mods&quot; mkdir &quot;$(ShellModsRoot)mods&quot;&#xD;&#xA;copy /y &quot;$(TargetPath)&quot; &quot;$(ShellModsRoot)mods\&quot; &gt;nul&#xD;&#xA;if errorlevel 1 (&#xD;&#xA;  echo [shellmods] Could not stage $(TargetFileName): it is loaded in a running process.&#xD;&#xA;  echo [shellmods] &quot;$(ShellModsRoot)shellmods.exe&quot; --status lists which processes hold it.&#xD;&#xA;  echo [shellmods] Restart those processes, then build again. Note that is not always just Explorer -- filesizes is also injected into Everything.exe.&#xD;&#xA;  exit /b 1&#xD;&#xA;)" />
   </Target>
 </Project>

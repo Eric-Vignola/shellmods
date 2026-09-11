@@ -62,9 +62,9 @@ NOT_A_SYMBOL = re.compile(r"^(prop:|Local\\|Global\\)")
 
 
 def main() -> int:
-    # dist/ so the files ship: the release archive is a copy of dist/, and
+    # the repository root so the files ship beside symgen.exe, and
     # symgen resolves symreq\ relative to its own directory.
-    out_dir = ROOT / "dist" / "symreq"
+    out_dir = ROOT / "symreq"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     for folder, spec in MODS.items():

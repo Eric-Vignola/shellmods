@@ -23,11 +23,11 @@ msbuild shellmods.sln /p:Configuration=Release /p:Platform=x64 /m
 
 x64 only — two of the three mods are declared `@architecture x86-64` upstream.
 
-Each project stages itself into `dist\` after building, so a successful build
-leaves a ready-to-run layout:
+Each project stages itself into the repository root after building, so a
+successful build leaves a ready-to-run layout in place:
 
 ```
-dist\
+<repo>\
   shellmods.exe        the loader
   symgen.exe           the symbol resolver
   shellmods.default.ini  shipped defaults (tracked)
@@ -44,7 +44,7 @@ dist\
 ## First run
 
 ```bash
-dist\symgen.exe
+.\symgen.exe
 ```
 
 Resolves the symbol names the mods need against your Windows build. It reads each
@@ -62,7 +62,7 @@ between Windows releases.
 Then:
 
 ```bash
-dist\shellmods.exe --once
+.\shellmods.exe --once
 ```
 
 ## Tests
@@ -81,7 +81,7 @@ from it.
 ## Releases
 
 `.github/workflows/release.yml` builds on a `v*` tag and publishes a zip of
-`dist/` plus the documentation. It can also be run manually
+the staged runtime layout plus the documentation. It can also be run manually
 (`workflow_dispatch`), which does everything except create the release, so the
 pipeline can be exercised without tagging.
 
@@ -91,7 +91,7 @@ preinstalled `gh`, rather than pulling in a third-party release action.
 Two things it deliberately checks rather than assumes: that the DIA SDK exists on
 the runner image (it ships with Visual Studio rather than as a listed component,
 so it is not in the image manifest), and that no Microsoft redistributable has
-crept into `dist/`.
+crept into the staged layout.
 
 Released archives contain no `offsets/*.sym`. Those are resolved against one
 specific Windows build and fingerprinted against it, so a runner-generated set
@@ -120,9 +120,9 @@ and names the patch rather than silently producing something unreviewed. It also
 rewrites `mods\<mod>\upstream.patch` so the diff stays reviewable.
 
 `extract_symreq.py` re-derives the symbol name lists from the ported sources,
-into `dist/symreq/`. They live under `dist/` because they are runtime data:
-`symgen.exe` looks for `symreq\` beside itself, and the release archive is a
-copy of `dist/`.
+into `symreq/`. They sit beside the built executables because they are runtime
+data: `symgen.exe` looks for `symreq\` next to itself, both in a source tree
+and in an extracted release archive.
 
 ## Notes on non-obvious build settings
 
@@ -163,7 +163,7 @@ side-by-side installs put the version in the path
 
 So nothing Microsoft-owned is committed, staged, or released. `.github/workflows/
 release.yml` enforces that with a step that fails if anything matching
-`msdia*`/`symsrv*`/`vcruntime*` turns up in `dist/`.
+`msdia*`/`symsrv*`/`vcruntime*` turns up in the staged layout.
 
 `symsrv.dll` is deliberately **not** used. Routing PDB downloads through it would
 work, but symsrv gates access to Microsoft's symbol server behind a `symsrv.yes`
