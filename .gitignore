@@ -22,6 +22,19 @@ dist/shellmods.log
 dist/DISABLE
 dist/storage/
 
+# The same runtime layout when it is staged at the repository root instead of
+# under dist\ -- which is what a flattened install looks like. Without these,
+# a single `git add -A` republishes the live config, the loader, the mod DLLs,
+# the resolved offsets and the log.
+/shellmods.ini
+/shellmods.log
+/shellmods.exe
+/symgen.exe
+/mods/*.dll
+/offsets/
+/DISABLE
+/storage/
+
 # Visual Studio
 .vs/
 *.user
