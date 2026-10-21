@@ -543,10 +543,36 @@ bool ProcessModule(const std::wstring& moduleName,
                    const std::wstring& outputDir,
                    const std::wstring& processName,
                    bool* anyResolved) {
+    // A .symreq may name a module by an absolute path, which is how you point
+    // symgen at a copy of a binary the live Explorer does not have mapped. The
+    // .sym is still named after the module, not after the path it was read
+    // from -- the shim looks it up by the base name of the loaded module.
+    const size_t slash = moduleName.find_last_of(L"\\/");
+    const std::wstring outName =
+        (slash == std::wstring::npos) ? moduleName : moduleName.substr(slash + 1);
+    const std::wstring outPath = outputDir + L"\\" + outName + L".sym";
+
     const std::wstring modulePath = ResolveModulePath(moduleName, processName);
     if (modulePath.empty()) {
-        // Expected and fine: the taskbar mod names alternative modules for
-        // different Windows builds, and only some exist on any one machine.
+        // A .symreq names alternative modules for different Windows builds, so
+        // a module that is simply not on this machine is expected and fine.
+        //
+        // Unless we resolved it before. An existing .sym was written against
+        // that module, so failing to find it now does not mean "not needed
+        // here" -- it means the file stays behind at whatever build it was
+        // generated for, and the shim refuses every hook in it the moment the
+        // module loads. That is a silent, total loss of one mod's hooks, and
+        // it is what this check exists to make loud.
+        if (FileExists(outPath)) {
+            Fail(L"%s: cannot locate this module, and %s already exists -- it "
+                 L"is being left behind stale, so those hooks will be refused. "
+                 L"Modules under SystemApps are located by asking the running "
+                 L"Explorer what it has mapped, so this one is not loaded there "
+                 L"right now; name it by absolute path in the .symreq to "
+                 L"resolve it anyway.",
+                 moduleName.c_str(), outPath.c_str());
+            return false;
+        }
         Info(L"  %s: not present on this machine, skipping", moduleName.c_str());
         return true;
     }
@@ -603,14 +629,13 @@ bool ProcessModule(const std::wstring& moduleName,
         return true;
     }
 
-    const std::wstring outPath = outputDir + L"\\" + moduleName + L".sym";
-    if (!WriteSymFile(outPath, moduleName, modulePath, timestamp, sizeOfImage,
+    if (!WriteSymFile(outPath, outName, modulePath, timestamp, sizeOfImage,
                       resolved)) {
         return false;
     }
 
     Info(L"  %s: %zu symbol(s) -> %s.sym  [%08X/%08X]", moduleName.c_str(),
-         resolved.size(), moduleName.c_str(), timestamp, sizeOfImage);
+         resolved.size(), outName.c_str(), timestamp, sizeOfImage);
     *anyResolved = true;
     return true;
 }
