@@ -1838,13 +1838,64 @@ LRESULT WINAPI SendMessageTimeoutW_Hook(HWND hWnd,
     return ret;
 }
 
+// Every setting here is a pixel size that ends up written into the taskbar's
+// own layout state, and Windows does not treat those as advisory. The
+// collapsible layout introduced for the Windows 11 taskbar fail-fasts the
+// whole of Explorer when the button width it reads back is exactly zero:
+//
+//   Taskbar.View.dll  winrt::Taskbar::implementation::
+//                     TaskbarCollapsibleLayoutXamlTraits::
+//                     GetExpandedSingleButtonMinWidth(double)
+//   -> ...\Src\Components\Taskbar\Taskbar\lib\TaskbarCollapsibleLayout.h:27
+//   -> 0xC0000409 subcode 7, no dialog, no recovery, the shell simply goes
+//
+// Zero is easy to arrive at by accident, because a key missing from the INI
+// reads as 0 by design -- see InternalWh_GetIntSetting. So an INI that is
+// empty, truncated, or caught halfway through being written hands every one of
+// these a zero. That is not hypothetical: copying a file over shellmods.ini
+// while Explorer is running does it, since each mod re-reads the INI the
+// moment its timestamp or size moves, and a copy truncates before it writes.
+//
+// A value outside the sane range is therefore refused rather than propagated.
+// Before any good value exists that means upstream's default; on a reload it
+// means keeping what was working a moment ago, which is what the user still
+// wants while they finish editing the file. The ceiling matches the one
+// TaskListButton_UpdateVisualStates_Hook already applies to the values it
+// reads back out of Windows.
 void LoadSettings() {
-    g_settings.taskbarHeight = Wh_GetIntSetting(L"TaskbarHeight");
-    g_settings.iconSize = Wh_GetIntSetting(L"IconSize");
-    g_settings.taskbarButtonWidth = Wh_GetIntSetting(L"TaskbarButtonWidth");
-    g_settings.iconSizeSmall = Wh_GetIntSetting(L"IconSizeSmall");
-    g_settings.taskbarButtonWidthSmall =
-        Wh_GetIntSetting(L"TaskbarButtonWidthSmall");
+    struct Setting {
+        PCWSTR name;
+        int* target;
+        int upstreamDefault;
+    };
+
+    static constexpr int kMaxSize = 10000;
+
+    const Setting settings[] = {
+        {L"TaskbarHeight", &g_settings.taskbarHeight, 48},
+        {L"IconSize", &g_settings.iconSize, 24},
+        {L"TaskbarButtonWidth", &g_settings.taskbarButtonWidth, 44},
+        {L"IconSizeSmall", &g_settings.iconSizeSmall, 16},
+        {L"TaskbarButtonWidthSmall", &g_settings.taskbarButtonWidthSmall, 32},
+    };
+
+    for (const Setting& setting : settings) {
+        const int value = Wh_GetIntSetting(setting.name);
+        if (value > 0 && value < kMaxSize) {
+            *setting.target = value;
+            continue;
+        }
+
+        // *target is zero only before the first good load, because nothing
+        // else ever writes a rejected value into it.
+        const int kept =
+            *setting.target > 0 ? *setting.target : setting.upstreamDefault;
+        Wh_Log(L"%s=%d is out of range; keeping %d. An empty or half-written "
+               L"shellmods.ini reads every key as 0, and a zero button width "
+               L"fail-fasts Explorer.",
+               setting.name, value, kept);
+        *setting.target = kept;
+    }
 }
 
 HWND FindCurrentProcessTaskbarWnd() {
